@@ -3,6 +3,28 @@
   width: 100%;
 }
 
+/* Error Message */
+.auth-error {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Button Disabled State */
+.auth-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-button:disabled:hover {
+  background: #9ca3af;
+}
+
 .auth-title {
   font-size: 22px;
   font-weight: 600;

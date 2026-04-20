@@ -1,5 +1,6 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
-import { AuthLayout } from './layouts';
+ import { useState, useEffect } from 'react';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
+import { AuthLayout, DashboardLayout } from './layouts';
 import {
   Login,
   Signup,
@@ -8,15 +9,64 @@ import {
   ResetPassword,
   Congratulations,
 } from './pages/auth';
+import { Dashboard } from './pages/dashboard';
+import './App.css';
+
+// Loading spinner component
+const LoadingSpinner = () => (
+  <div className="loading-container">
+    <div className="loading-spinner"></div>
+  </div>
+);
+
+// Auth check wrapper with loading state
+const AuthCheck = ({ children, requireAuth = true }: { children: React.ReactNode; requireAuth?: boolean }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsAuthenticated(!!token);
+    setIsLoading(false);
+  }, []);
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (requireAuth && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!requireAuth && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Layout wrappers with auth checks
+const ProtectedLayout = () => (
+  <AuthCheck requireAuth={true}>
+    <DashboardLayout />
+  </AuthCheck>
+);
+
+const PublicLayout = () => (
+  <AuthCheck requireAuth={false}>
+    <AuthLayout />
+  </AuthCheck>
+);
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <Navigate to="/login" replace />,
   },
+  // Auth Routes (Public only - redirects to dashboard if logged in)
   {
     path: '/',
-    element: <AuthLayout />,
+    element: <PublicLayout />,
     children: [
       {
         path: 'login',
@@ -41,6 +91,37 @@ const router = createBrowserRouter([
       {
         path: 'congratulations',
         element: <Congratulations />,
+      },
+    ],
+  },
+  // Dashboard Routes (Protected - requires login)
+  {
+    path: '/',
+    element: <ProtectedLayout />,
+    children: [
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: 'orders',
+        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>Orders Page - Coming Soon</h2></div>,
+      },
+      {
+        path: 'menu',
+        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>Menu Page - Coming Soon</h2></div>,
+      },
+      {
+        path: 'bills',
+        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>Bills Page - Coming Soon</h2></div>,
+      },
+      {
+        path: 'history',
+        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>History Page - Coming Soon</h2></div>,
+      },
+      {
+        path: 'products',
+        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>Product Management - Coming Soon</h2></div>,
       },
     ],
   },

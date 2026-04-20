@@ -1,14 +1,47 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import '../../styles/AuthPages.css';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Navigate to verification code page
-    navigate('/verification-code');
+    setError('');
+
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:6969/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+
+      // Navigate to verification code page with email
+      navigate('/verification-code', { state: { email } });
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -20,23 +53,28 @@ const ForgotPassword = () => {
 
       <h1 className="auth-title">Forgot Password? 🔒</h1>
       <p className="auth-subtitle">
-        Don't worry! It happens. Please enter your email address or phone number to reset your password.
+        Don't worry! It happens. Please enter your email address to reset your password.
       </p>
 
+      {error && <div className="auth-error">{error}</div>}
+
       <form className="auth-form" onSubmit={handleSubmit}>
-        {/* Email/Phone Field */}
+        {/* Email Field */}
         <div className="auth-input-group">
           <Mail className="auth-input-icon" size={18} />
           <input
             type="email"
             placeholder="Enter your email"
             className="auth-input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
         </div>
 
-        {/* Reset Password Button */}
-        <button type="submit" className="auth-button">
-          Send OTP
+        {/* Send OTP Button */}
+        <button type="submit" className="auth-button" disabled={loading}>
+          {loading ? 'Sending...' : 'Send OTP'}
         </button>
 
         {/* Login Link */}
