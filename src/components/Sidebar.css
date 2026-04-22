@@ -1,0 +1,154 @@
+.sidebar {
+  background: white;
+  border-right: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  position: fixed;
+  height: 100vh;
+  z-index: 100;
+  top: 0;
+  left: 0;
+}
+
+.sidebar.open {
+  width: 260px;
+}
+
+.sidebar.closed {
+  width: 80px;
+}
+
+.sidebar-header {
+  padding: 23px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+  position: relative;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.logo-text-container {
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.logo-text-yummy {
+  color: #00B940;
+}
+
+.logo-text-yard {
+  color: #004F19;
+}
+
+.sidebar.closed .logo-text-container {
+  display: none;
+}
+
+.menu-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.menu-toggle:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.menu-toggle-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* When sidebar is closed, show toggle button outside the sidebar */
+.sidebar.closed .menu-toggle {
+  position: fixed;
+  left: 96px;
+  top: 16px;
+  background: white;
+  border: 1px solid #eee;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 101;
+}
+
+.sidebar.closed .sidebar-header {
+  padding: 20px;
+  justify-content: center;
+}
+
+.sidebar.closed .logo {
+  justify-content: center;
+}
+
+.sidebar-nav {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #64748b;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.nav-item.active {
+  background: #22c55e;
+  color: white;
+  padding: 12px;
+  min-width: 42px;
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.nav-item span {
+  white-space: nowrap;
+}
+
+.sidebar.closed .nav-item span {
+  display: none;
+}

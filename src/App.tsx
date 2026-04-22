@@ -1,5 +1,5 @@
  import { useState, useEffect } from 'react';
-import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AuthLayout, DashboardLayout } from './layouts';
 import {
   Login,
@@ -10,6 +10,7 @@ import {
   Congratulations,
 } from './pages/auth';
 import { Dashboard } from './pages/dashboard';
+import { Orders } from './pages/orders';
 import './App.css';
 
 // Loading spinner component
@@ -105,7 +106,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'orders',
-        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>Orders Page - Coming Soon</h2></div>,
+        element: <Orders />,
       },
       {
         path: 'menu',

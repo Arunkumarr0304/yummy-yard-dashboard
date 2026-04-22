@@ -1,6 +1,36 @@
-import { TrendingUp, TrendingDown, DollarSign, ShoppingBag, Receipt, XCircle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart3, Settings, Users, FileText, CreditCard, MoreHorizontal, LogOut, TrendingUp } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
+
+// Custom Tooltip Component
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const value = payload[0].value;
+    const percent = ((value / 5000) * 100).toFixed(1);
+    return (
+      <div className="custom-tooltip">
+        <div className="tooltip-value">${value}.04</div>
+        <div className="tooltip-percent">
+          <TrendingUp size={14} className="tooltip-arrow" />
+          <span>{percent}%</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 import './Dashboard.css';
+import Profile from "../../assets/profile-image.png";
+import SearchIcon from "../../assets/search-icon.svg";
+import CommandIcon from "../../assets/command-icon.svg";
+import SettingsIcon from "../../assets/settings-icon.svg";
+import DataIcon1 from "../../assets/dashboard-icon1.svg";
+import DataIcon2 from "../../assets/dashboard-icon2.svg";
+import DataIcon3 from "../../assets/dashboard-icon3.svg";
+import DataIcon4 from "../../assets/dashboard-icon4.svg";
+import Arrow from "../../assets/green-arrow.svg";
+import Tomato from "../../assets/tomato.png";
+import Dish from "../../assets/dish.png";
 
 // Sample data for charts
 const salesData = [
@@ -13,222 +43,321 @@ const salesData = [
 ];
 
 const incomeData = [
-  { name: 'Main Course', value: 400, color: '#22c55e' },
-  { name: 'Beverage', value: 300, color: '#3b82f6' },
-  { name: 'Others', value: 200, color: '#f59e0b' },
+  { name: 'Main Course', value: 400, color: '#153B9C' },
+  { name: 'Beverage', value: 300, color: '#2261FF' },
+  { name: 'Others', value: 200, color: '#A4BEFF' },
 ];
 
 const transactions = [
-  { id: 1, product: 'Tomato', date: 'Wed, 04 Jun 2023', price: 30.00, image: '🍅' },
-  { id: 2, product: 'Egg', date: 'Wed, 04 Jun 2023', price: 30.00, image: '🥚' },
-  { id: 3, product: 'Tomato', date: 'Wed, 04 Jun 2023', price: 30.00, image: '🍅' },
+  { id: 1, product: 'Tomato', date: 'Wed, 04 Jun 2023', price: 30.00, image: Tomato },
+  { id: 2, product: 'Egg', date: 'Wed, 04 Jun 2023', price: 30.00, image: Tomato },
+  { id: 3, product: 'Tomato', date: 'Wed, 04 Jun 2023', price: 30.00, image: Tomato },
 ];
 
 const trendingMenu = [
-  { id: 1, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: '🍳' },
-  { id: 2, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: '🍳' },
-  { id: 3, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: '🍳' },
-  { id: 4, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: '🍳' },
-  { id: 5, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: '🍳' },
+  { id: 1, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
+  { id: 2, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
+  { id: 3, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
+  { id: 4, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
+  { id: 5, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
+];
+
+const profileMenuItems = [
+  { path: '/dashboard', icon: BarChart3, label: 'Analytics' },
+  { path: '/account', icon: Settings, label: 'Account Setting' },
+  { path: '/customers', icon: Users, label: 'Customer List' },
+  { path: '/reports', icon: FileText, label: 'Report' },
+  { path: '/transactions', icon: CreditCard, label: 'Transaction' },
 ];
 
 export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   const stats = [
-    { 
-      title: 'Total sale', 
-      value: '$24,064', 
-      change: '27.4%', 
+    {
+      title: 'Total sale',
+      value: '$24,064',
+      change: '27.4%',
       trend: 'up',
-      icon: DollarSign,
+      icon: DataIcon1,
       color: '#22c55e'
     },
-    { 
-      title: 'Total order', 
-      value: '$24,064', 
-      change: '27.4%', 
+    {
+      title: 'Total order',
+      value: '$24,064',
+      change: '27.4%',
       trend: 'up',
-      icon: ShoppingBag,
+      icon: DataIcon2,
       color: '#f59e0b'
     },
-    { 
-      title: 'Total revenue', 
-      value: '$24,064', 
-      change: '27.4%', 
+    {
+      title: 'Total revenue',
+      value: '$24,064',
+      change: '27.4%',
       trend: 'up',
-      icon: Receipt,
+      icon: DataIcon3,
       color: '#3b82f6'
     },
-    { 
-      title: 'Cancelled order', 
-      value: '$24,064', 
-      change: '27.4%', 
+    {
+      title: 'Cancelled order',
+      value: '$24,064',
+      change: '27.4%',
       trend: 'down',
-      icon: XCircle,
+      icon: DataIcon4,
       color: '#ef4444'
     },
   ];
 
   return (
-    <div className="dashboard">
-      {/* Welcome Section */}
-      <div className="welcome-section">
-        <div>
-          <h1>Hello, {user.username || 'Rijal'} 👋</h1>
-          <p>Here some reports on your dashboard</p>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        {stats.map((stat, index) => (
-          <div key={index} className="stat-card">
-            <div className="stat-header">
-              <div className="stat-icon" style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
-                <stat.icon size={20} />
-              </div>
-              <div className="stat-title">{stat.title}</div>
+    <div className="dashboard-container">
+      <div className="dashboard-main">
+        {/* Welcome Section */}
+        <div className="welcome-section">
+          <div className="welcome-left">
+            <h1>Hello, {user.username || 'Rijal'} 👋</h1>
+            <p>Here some reports on your dashboard</p>
+          </div>
+          <div className="welcome-right">
+            <div className="search-bar">
+              <img src={SearchIcon} alt="Search" className="search-icon" />
+              <input type="text" placeholder="Search" className="search-input" />
             </div>
-            <div className="stat-value">{stat.value}</div>
-            <div className="stat-footer">
-              <span className="stat-period">From last week</span>
-              <span className={`stat-change ${stat.trend === 'up' ? 'positive' : 'negative'}`}>
-                {stat.trend === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                {stat.change}
-              </span>
+            <button className="icon-btn command-btn">
+              <img src={CommandIcon} alt="Command" />
+              <span className="notification-dot"></span>
+            </button>
+            <button className="icon-btn settings-btn">
+              <img src={SettingsIcon} alt="Settings" />
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="stats-grid">
+          {stats.map((stat, index) => (
+            <div key={index} className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon" style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
+                  <img src={stat.icon} className='data-icon'/>
+                </div>
+                <div>
+                <div className="stat-title">{stat.title}</div>
+                <div className="stat-footer">
+                <span className="stat-period">From last week</span>
+                <span className={`stat-change ${stat.trend === 'up' ? 'positive' : 'negative'}`}>
+                  {stat.change}
+                </span>
+              </div>
+              </div>
+              </div>
+
+              <div className='value-Row'>
+              <div className="stat-value">{stat.value}</div>
+              <img src={Arrow} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts Section */}
+        <div className="charts-section">
+          <div className="chart-card sales-chart">
+            <div className="chart-header">
+              <h3>Sales</h3>
+              <div className="chart-legend">
+                <span className="legend-item">
+                  <span className="dot income"></span>
+                  Income
+                </span>
+                <select className="period-select">
+                  <option>Last 6 month</option>
+                </select>
+              </div>
+            </div>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={true} />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 12 }} 
+                    dy={10}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    tickFormatter={(value) => value}
+                    domain={[0, 'dataMax + 100']}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorValue)"
+                    baseLine={0}
+                    activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 3 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Charts Section */}
-      <div className="charts-section">
-        <div className="chart-card sales-chart">
-          <div className="chart-header">
-            <h3>Sales</h3>
-            <div className="chart-legend">
-              <span className="legend-item">
-                <span className="dot income"></span>
-                Income
-              </span>
+          <div className="chart-card income-chart">
+            <div className="chart-header">
+              <h3>Income</h3>
               <select className="period-select">
-                <option>Last 6 month</option>
+                <option>Jan</option>
               </select>
             </div>
-          </div>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-card income-chart">
-          <div className="chart-header">
-            <h3>Income</h3>
-            <select className="period-select">
-              <option>Jan</option>
-            </select>
-          </div>
-          <div className="pie-chart-container">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={incomeData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {incomeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pie-center">
-              <span>Total</span>
-              <strong>$15,490</strong>
-            </div>
-          </div>
-          <div className="income-legend">
-            {incomeData.map((item, index) => (
-              <div key={index} className="legend-row">
-                <span className="legend-dot" style={{ backgroundColor: item.color }}></span>
-                <span className="legend-label">{item.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section */}
-      <div className="bottom-section">
-        <div className="section-card transactions-card">
-          <div className="section-header">
-            <h3>Transactions</h3>
-            <select className="period-select">
-              <option>Recent</option>
-            </select>
-          </div>
-          <div className="transactions-list">
-            <div className="transaction-header">
-              <span>Name products</span>
-              <span>Date/Time</span>
-              <span>Price</span>
-            </div>
-            {transactions.map((transaction) => (
-              <div key={transaction.id} className="transaction-row">
-                <div className="product-info">
-                  <span className="product-image">{transaction.image}</span>
-                  <span className="product-name">{transaction.product}</span>
-                </div>
-                <span className="transaction-date">{transaction.date}</span>
-                <span className="transaction-price">${transaction.price.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="section-card trending-card">
-          <div className="section-header">
-            <h3>Trending menu</h3>
-            <button className="more-btn">⋮</button>
-          </div>
-          <div className="trending-list">
-            {trendingMenu.map((item) => (
-              <div key={item.id} className="trending-item">
-                <div className="trending-info">
-                  <span className="trending-image">{item.image}</span>
-                  <div className="trending-details">
-                    <span className="trending-name">{item.name}</span>
-                    <span className="trending-orders">Order: {item.orders}</span>
+            <div className='chart-row'>
+              <div className="income-legend">
+                {incomeData.map((item, index) => (
+                  <div key={index} className="legend-row">
+                    <span className="legend-dot" style={{ backgroundColor: item.color }}></span>
+                    <span className="legend-label">{item.name}</span>
                   </div>
-                </div>
-                <span className="trending-percent positive">{item.percent}%</span>
+                ))}
               </div>
-            ))}
+              <div className="pie-chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={incomeData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {incomeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pie-center">
+                  <span>Total</span>
+                  <strong>$15,490</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="bottom-section">
+          <div className="section-card transactions-card">
+            <div className="section-header">
+              <h3>Transactions</h3>
+              <select className="period-select">
+                <option>Recent</option>
+              </select>
+            </div>
+            <div className="transactions-list">
+              <div className="transaction-header">
+                <span>Name products</span>
+                <span>Date/Time</span>
+                <span>Price</span>
+              </div>
+              {transactions.map((transaction) => (
+                <div key={transaction.id} className="transaction-row">
+                  <div className="product-info">
+                    <span className="product-image">
+                      <img src={transaction.image} />
+                    </span>
+                    <span className="product-name">{transaction.product}</span>
+                  </div>
+                  <span className="transaction-date">{transaction.date}</span>
+                  <span className="transaction-price">${transaction.price.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="section-card trending-card">
+            <div className="section-header">
+              <h3>Trending menu</h3>
+              <button className="more-btn">⋮</button>
+            </div>
+            <div className="trending-list">
+              {trendingMenu.map((item) => (
+                <div key={item.id} className="trending-item">
+                  <div className="trending-info">
+                    <span className="trending-image">
+                      <img src={item.image} />
+                    </span>
+                    <div className="trending-details">
+                      <span className="trending-name">{item.name}</span>
+                      <span className="trending-orders">Order: {item.orders}</span>
+                    </div>
+                  </div>
+                  <span className="trending-percent positive">{item.percent}%</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Profile Sidebar - Part of Dashboard Page */}
+      <aside className="profile-sidebar">
+        <div className="profile-card">
+          <div className="profile-header">
+            <span className="profile-title">Profile</span>
+            <button className="more-btn">
+              <MoreHorizontal size={18} />
+            </button>
+          </div>
+
+          <div className="profile-info">
+            <img
+              src={Profile}
+              alt="Profile"
+              className="profile-avatar"
+            />
+            <h3 className="profile-name">{user.username || 'User'}</h3>
+            <p className="profile-role">Administrator</p>
+          </div>
+
+          <div className="profile-menu">
+            {profileMenuItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => `profile-menu-item ${isActive ? 'active' : ''}`}
+              >
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+
+          <button className="logout-btn" onClick={handleLogout}>
+            <LogOut size={18} />
+            <span>Log out</span>
+          </button>
+        </div>
+      </aside>
     </div>
   );
 }
