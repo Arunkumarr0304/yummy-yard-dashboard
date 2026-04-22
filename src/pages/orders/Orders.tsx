@@ -1,13 +1,19 @@
 import { useState } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Nav, Form, InputGroup } from 'react-bootstrap';
-import { Search, ChevronRight } from 'lucide-react';
+import { Container, Row, Col, Card, Button, Badge, Nav, Form, InputGroup, Modal } from 'react-bootstrap';
+import { Search, X } from 'lucide-react';
 import './Orders.css';
 import Arrow from "../../assets/right-arrow.svg";
+import Dish2 from "../../assets/dish2.png";
+import Dish3 from "../../assets/dish3.png";
+import Dish4 from "../../assets/dish4.png";
 
 interface OrderItem {
   name: string;
   qty: number;
   price: string;
+  image: string;
+  time: string;
+  spiciness: string;
 }
 
 interface Order {
@@ -21,8 +27,13 @@ interface Order {
   date: string;
   time: string;
   items: OrderItem[];
+  subtotal: string;
+  tax: string;
+  discount: string;
   total: string;
 }
+
+const dishImages = [Dish2, Dish3, Dish4];
 
 const ordersData: Order[] = [
   {
@@ -36,11 +47,14 @@ const ordersData: Order[] = [
     date: 'Wed, July 12, 2024',
     time: '10:20 AM',
     items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$451.00' },
-      { name: 'Spicy Tuna Nachos', qty: 2, price: '$242.00' },
-      { name: 'Butterscotch', qty: 3, price: '$132.00' },
+      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
     ],
-    total: '$542.00',
+    subtotal: '$882.00',
+    tax: '$38.20',
+    discount: '$0',
+    total: '$982.00',
   },
   {
     id: '2',
@@ -53,11 +67,14 @@ const ordersData: Order[] = [
     date: 'Wed, July 12, 2024',
     time: '10:20 AM',
     items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$451.00' },
-      { name: 'Spicy Tuna Nachos', qty: 2, price: '$242.00' },
-      { name: 'Butterscotch', qty: 3, price: '$132.00' },
+      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
     ],
-    total: '$542.00',
+    subtotal: '$882.00',
+    tax: '$38.20',
+    discount: '$0',
+    total: '$982.00',
   },
   {
     id: '3',
@@ -70,11 +87,14 @@ const ordersData: Order[] = [
     date: 'Wed, July 12, 2024',
     time: '10:20 AM',
     items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$451.00' },
-      { name: 'Spicy Tuna Nachos', qty: 2, price: '$242.00' },
-      { name: 'Butterscotch', qty: 3, price: '$132.00' },
+      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
     ],
-    total: '$542.00',
+    subtotal: '$882.00',
+    tax: '$38.20',
+    discount: '$0',
+    total: '$982.00',
   },
   {
     id: '4',
@@ -87,11 +107,14 @@ const ordersData: Order[] = [
     date: 'Wed, July 12, 2024',
     time: '10:20 AM',
     items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$451.00' },
-      { name: 'Spicy Tuna Nachos', qty: 2, price: '$242.00' },
-      { name: 'Butterscotch', qty: 3, price: '$132.00' },
+      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
     ],
-    total: '$542.00',
+    subtotal: '$882.00',
+    tax: '$38.20',
+    discount: '$0',
+    total: '$982.00',
   },
   {
     id: '5',
@@ -104,11 +127,14 @@ const ordersData: Order[] = [
     date: 'Wed, July 12, 2024',
     time: '10:20 AM',
     items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$451.00' },
-      { name: 'Spicy Tuna Nachos', qty: 2, price: '$242.00' },
-      { name: 'Butterscotch', qty: 3, price: '$132.00' },
+      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
     ],
-    total: '$542.00',
+    subtotal: '$882.00',
+    tax: '$38.20',
+    discount: '$0',
+    total: '$982.00',
   },
   {
     id: '6',
@@ -121,11 +147,14 @@ const ordersData: Order[] = [
     date: 'Wed, July 12, 2024',
     time: '10:20 AM',
     items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$451.00' },
-      { name: 'Spicy Tuna Nachos', qty: 2, price: '$242.00' },
-      { name: 'Butterscotch', qty: 3, price: '$132.00' },
+      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
+      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
     ],
-    total: '$542.00',
+    subtotal: '$882.00',
+    tax: '$38.20',
+    discount: '$0',
+    total: '$982.00',
   },
 ];
 
@@ -151,6 +180,8 @@ const getStatusBadge = (status: string) => {
 export default function Orders() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const tabs = [
     { key: 'all', label: 'All' },
@@ -165,6 +196,16 @@ export default function Orders() {
     if (searchQuery && !order.customerName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+
+  const handleSeeDetail = (order: Order) => {
+    setSelectedOrder(order);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedOrder(null);
+  };
 
   return (
     <Container fluid className="orders-page py-4">
@@ -273,7 +314,11 @@ export default function Orders() {
 
                 {/* Buttons */}
                 <div className="d-flex gap-2">
-                  <Button variant="outline-success" className="see-detail-btn flex-fill">
+                  <Button 
+                    variant="outline-success" 
+                    className="see-detail-btn flex-fill"
+                    onClick={() => handleSeeDetail(order)}
+                  >
                     See Detail
                   </Button>
                   <Button className="pay-bills-btn flex-fill">Pay Bills</Button>
@@ -289,6 +334,95 @@ export default function Orders() {
           <p>No orders found</p>
         </div>
       )}
+
+      {/* Order Details Modal */}
+      <Modal 
+        show={showModal} 
+        onHide={handleCloseModal} 
+        centered 
+        className="order-detail-modal"
+        backdrop="static"
+      >
+        {selectedOrder && (
+          <>
+            <Modal.Header className="border-0 pb-0">
+              <div className="d-flex align-items-center justify-content-between w-100">
+                <div className="d-flex align-items-center gap-3">
+                  <div
+                    className="avatar-circle"
+                    style={{ backgroundColor: selectedOrder.avatarColor }}
+                  >
+                    {selectedOrder.initials}
+                  </div>
+                  <div>
+                    <h6 className="mb-1 fw-semibold">{selectedOrder.customerName}</h6>
+                    <small className="subtext">
+                      {selectedOrder.orderNumber} / {selectedOrder.orderType}
+                    </small>
+                  </div>
+                </div>
+                <div className="d-flex align-items-center gap-3">
+                  {getStatusBadge(selectedOrder.status)}
+                  <Button 
+                    variant="link" 
+                    className="p-0 close-btn" 
+                    onClick={handleCloseModal}
+                  >
+                    <X size={24} className="text-muted" />
+                  </Button>
+                </div>
+              </div>
+            </Modal.Header>
+            <Modal.Body className="pt-3">
+              {/* Date & Time */}
+              <div className="d-flex justify-content-between text-muted small mb-4 py-2 border-bottom">
+                <span className='regular-text date'>{selectedOrder.date}</span>
+                <span className='regular-text time'>{selectedOrder.time}</span>
+              </div>
+
+              {/* Order List Title */}
+              <h6 className="order-list-title mb-3">Order List</h6>
+
+              {/* Order Items with Images */}
+              <div className="order-items-list mb-4">
+                {selectedOrder.items.map((item, idx) => (
+                  <div key={idx} className="order-item-card d-flex gap-3 p-3 mb-2">
+                    <div className="order-item-image">
+                      <img src={item.image} alt={item.name} className="rounded-3" />
+                    </div>
+                    <div className="order-item-info flex-grow-1">
+                      <h6 className="order-item-name mb-1">{item.name}</h6>
+                      <small className="order-item-time d-block text-muted mb-1">{item.time}</small>
+                      <span className="order-item-spiciness">{item.spiciness}</span>
+                    </div>
+                    <div className="order-item-price fw-semibold">{item.price}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="price-breakdown border-top pt-3">
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Subtotal</span>
+                  <span>{selectedOrder.subtotal}</span>
+                </div>
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Tax (10%)</span>
+                  <span>{selectedOrder.tax}</span>
+                </div>
+                <div className="d-flex justify-content-between mb-3">
+                  <span className="text-muted">Discount</span>
+                  <span>{selectedOrder.discount}</span>
+                </div>
+                <div className="d-flex justify-content-between pt-3 border-top">
+                  <span className="fw-semibold fs-5">Total</span>
+                  <span className="total-amount fw-bold fs-5">{selectedOrder.total}</span>
+                </div>
+              </div>
+            </Modal.Body>
+          </>
+        )}
+      </Modal>
     </Container>
   );
 }

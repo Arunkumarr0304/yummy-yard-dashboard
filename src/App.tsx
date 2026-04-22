@@ -11,6 +11,8 @@ import {
 } from './pages/auth';
 import { Dashboard } from './pages/dashboard';
 import { Orders } from './pages/orders';
+import { Bills } from './pages/bills';
+import { History } from './pages/history';
 import './App.css';
 
 // Loading spinner component
@@ -114,11 +116,11 @@ const router = createBrowserRouter([
       },
       {
         path: 'bills',
-        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>Bills Page - Coming Soon</h2></div>,
+        element: <Bills />,
       },
       {
         path: 'history',
-        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>History Page - Coming Soon</h2></div>,
+        element: <History />,
       },
       {
         path: 'products',
