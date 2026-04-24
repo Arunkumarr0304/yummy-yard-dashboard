@@ -13,6 +13,7 @@ import { Dashboard } from './pages/dashboard';
 import { Orders } from './pages/orders';
 import { Bills } from './pages/bills';
 import { History } from './pages/history';
+import { Products } from './pages/products';
 import './App.css';
 
 // Loading spinner component
@@ -124,7 +125,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'products',
-        element: <div style={{ padding: '40px', textAlign: 'center' }}><h2>Product Management - Coming Soon</h2></div>,
+        element: <Products />,
       },
     ],
   },
