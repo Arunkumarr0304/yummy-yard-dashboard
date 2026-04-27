@@ -1,11 +1,9 @@
-import { useState } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Nav, Form, InputGroup, Modal } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Button, Badge, Nav, Form, InputGroup, Modal, Spinner } from 'react-bootstrap';
 import { Search, X } from 'lucide-react';
 import './Orders.css';
 import Arrow from "../../assets/right-arrow.svg";
-import Dish2 from "../../assets/dish2.png";
-import Dish3 from "../../assets/dish3.png";
-import Dish4 from "../../assets/dish4.png";
+import { getOrders } from '../../api/orders';
 
 interface OrderItem {
   name: string;
@@ -17,7 +15,7 @@ interface OrderItem {
 }
 
 interface Order {
-  id: string;
+  _id: string;
   customerName: string;
   initials: string;
   avatarColor: string;
@@ -32,131 +30,6 @@ interface Order {
   discount: string;
   total: string;
 }
-
-const dishImages = [Dish2, Dish3, Dish4];
-
-const ordersData: Order[] = [
-  {
-    id: '1',
-    customerName: 'Cheryl Ayema',
-    initials: 'CA',
-    avatarColor: '#2261FF',
-    orderNumber: 'Order #1234',
-    orderType: 'Dine in',
-    status: 'canceled',
-    date: 'Wed, July 12, 2024',
-    time: '10:20 AM',
-    items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-    ],
-    subtotal: '$882.00',
-    tax: '$38.20',
-    discount: '$0',
-    total: '$982.00',
-  },
-  {
-    id: '2',
-    customerName: 'Cheryl Ayema',
-    initials: 'CA',
-    avatarColor: '#F56F62',
-    orderNumber: 'Order #1234',
-    orderType: 'Dine in',
-    status: 'waiting',
-    date: 'Wed, July 12, 2024',
-    time: '10:20 AM',
-    items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-    ],
-    subtotal: '$882.00',
-    tax: '$38.20',
-    discount: '$0',
-    total: '$982.00',
-  },
-  {
-    id: '3',
-    customerName: 'Cheryl Ayema',
-    initials: 'CA',
-    avatarColor: '#01B763',
-    orderNumber: 'Order #1234',
-    orderType: 'Dine in',
-    status: 'ready',
-    date: 'Wed, July 12, 2024',
-    time: '10:20 AM',
-    items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-    ],
-    subtotal: '$882.00',
-    tax: '$38.20',
-    discount: '$0',
-    total: '$982.00',
-  },
-  {
-    id: '4',
-    customerName: 'Cheryl Ayema',
-    initials: 'CA',
-    avatarColor: '#01B763',
-    orderNumber: 'Order #1234',
-    orderType: 'Dine in',
-    status: 'ready',
-    date: 'Wed, July 12, 2024',
-    time: '10:20 AM',
-    items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-    ],
-    subtotal: '$882.00',
-    tax: '$38.20',
-    discount: '$0',
-    total: '$982.00',
-  },
-  {
-    id: '5',
-    customerName: 'Cheryl Ayema',
-    initials: 'CA',
-    avatarColor: '#2261FF',
-    orderNumber: 'Order #1234',
-    orderType: 'Dine in',
-    status: 'completed',
-    date: 'Wed, July 12, 2024',
-    time: '10:20 AM',
-    items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-    ],
-    subtotal: '$882.00',
-    tax: '$38.20',
-    discount: '$0',
-    total: '$982.00',
-  },
-  {
-    id: '6',
-    customerName: 'Cheryl Ayema',
-    initials: 'CA',
-    avatarColor: '#F56F62',
-    orderNumber: 'Order #1234',
-    orderType: 'Dine in',
-    status: 'completed',
-    date: 'Wed, July 12, 2024',
-    time: '10:20 AM',
-    items: [
-      { name: 'Crispy Dory Sambal Matah', qty: 1, price: '$101.00', image: Dish2, time: '1 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$542.00', image: Dish3, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-      { name: 'Crispy Dory Sambal Matah', qty: 3, price: '$132.00', image: Dish4, time: '3 Dish', spiciness: 'Medium - Not spicy' },
-    ],
-    subtotal: '$882.00',
-    tax: '$38.20',
-    discount: '$0',
-    total: '$982.00',
-  },
-];
 
 const getStatusBadge = (status: string) => {
   const statusConfig: Record<string, { bg: string; text: string; className: string }> = {
@@ -180,6 +53,9 @@ const getStatusBadge = (status: string) => {
 export default function Orders() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -191,11 +67,43 @@ export default function Orders() {
     { key: 'canceled', label: 'Canceled' },
   ];
 
-  const filteredOrders = ordersData.filter((order) => {
-    if (activeTab !== 'all' && order.status !== activeTab) return false;
-    if (searchQuery && !order.customerName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
+  // Fetch orders from API
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await getOrders({
+        status: activeTab === 'all' ? undefined : activeTab,
+        search: searchQuery || undefined
+      });
+      
+      if (response.success) {
+        setOrders(response.data);
+      } else {
+        setError('Failed to load orders');
+      }
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Failed to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch orders when tab or search changes
+  useEffect(() => {
+    fetchOrders();
+  }, [activeTab]);
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchOrders();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const handleSeeDetail = (order: Order) => {
     setSelectedOrder(order);
@@ -206,6 +114,28 @@ export default function Orders() {
     setShowModal(false);
     setSelectedOrder(null);
   };
+
+  if (loading && orders.length === 0) {
+    return (
+      <Container fluid className="orders-page py-4">
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+          <Spinner animation="border" variant="success" />
+          <span className="ms-3">Loading orders...</span>
+        </div>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container fluid className="orders-page py-4">
+        <div className="text-center py-5">
+          <p className="text-danger">{error}</p>
+          <Button variant="outline-success" onClick={fetchOrders}>Retry</Button>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <Container fluid className="orders-page py-4">
@@ -229,7 +159,7 @@ export default function Orders() {
           <div className="date-picker d-flex align-items-center gap-2 text-muted">
             <span className="fw-semibold">Date</span>
             <span className='fw-semibold-date'>22/02/2024</span>
-            <img src={Arrow} />
+            <img src={Arrow} alt="arrow" />
           </div>
         </Col>
       </Row>
@@ -255,14 +185,22 @@ export default function Orders() {
           <h5 className="customer-list-title mb-0">Customer List</h5>
         </Col>
         <Col xs="auto">
-          <span className="showing-text">Showing {filteredOrders.length} items</span>
+          <span className="showing-text">Showing {orders.length} items</span>
         </Col>
       </Row>
 
+      {/* Loading Overlay */}
+      {loading && orders.length > 0 && (
+        <div className="text-center py-3">
+          <Spinner animation="border" size="sm" variant="success" />
+          <span className="ms-2">Refreshing...</span>
+        </div>
+      )}
+
       {/* Orders Grid */}
       <Row className="g-4">
-        {filteredOrders.map((order) => (
-          <Col key={order.id} xs={12} lg={6} xl={4}>
+        {orders.map((order) => (
+          <Col key={order._id} xs={12} lg={6} xl={4}>
             <Card className="order-card h-100 border-0 shadow-sm">
               <Card.Body className="p-4">
                 {/* Header */}
@@ -329,9 +267,10 @@ export default function Orders() {
         ))}
       </Row>
 
-      {filteredOrders.length === 0 && (
+      {orders.length === 0 && !loading && (
         <div className="text-center py-5 text-muted">
           <p>No orders found</p>
+          <p className="small">Orders will appear here once customers place orders through the mobile app.</p>
         </div>
       )}
 

@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Container, Row, Col, InputGroup, Form, Badge, Button } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Container, Row, Col, InputGroup, Form, Badge, Button, Spinner } from 'react-bootstrap';
 import { Table } from '../../components';
 import { Pagination } from '../../components';
+import { getBills, deleteBill, printBill } from '../../api/bills';
 import './Bills.css';
 import SearchIcon from "../../assets/search-icon.svg";
 import ArrowIcon from "../../assets/right-arrow.svg";
@@ -9,7 +10,7 @@ import PrintIcon from "../../assets/print-icon.svg";
 import DeleteIcon from "../../assets/delete-icon.svg";
 
 interface Bill {
-  id: string;
+  _id: string;
   customerName: string;
   initials: string;
   tableNumber: string;
@@ -19,16 +20,14 @@ interface Bill {
   tableInfo: string;
 }
 
-const billsData: Bill[] = Array.from({ length: 6 }, (_, i) => ({
-  id: String(i + 1),
-  customerName: 'Cheryl Ayema',
-  initials: 'CA',
-  tableNumber: '10A',
-  orderNumber: '#12532',
-  status: 'completed' as const,
-  itemCount: 3,
-  tableInfo: 'Table 3',
-}));
+interface BillsResponse {
+  success: boolean;
+  data: Bill[];
+  count: number;
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
 
 interface ActiveAction {
   rowId: string;
@@ -56,20 +55,91 @@ export default function Bills() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const itemsPerPage = 6;
 
-  // Filter bills based on search
-  const filteredBills = billsData.filter((bill) =>
-    bill.customerName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch bills from API
+  const fetchBills = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response: BillsResponse = await getBills({
+        search: searchQuery,
+        page: currentPage,
+        limit: itemsPerPage
+      });
+      
+      if (response.success) {
+        setBills(response.data);
+        setTotalItems(response.total);
+        setTotalPages(response.totalPages);
+      }
+    } catch (err) {
+      setError('Failed to fetch bills. Please try again.');
+      console.error('Error fetching bills:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredBills.length / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedBills = filteredBills.slice(startIndex, startIndex + itemsPerPage);
+  // Fetch bills on component mount and when dependencies change
+  useEffect(() => {
+    fetchBills();
+  }, [currentPage, searchQuery]);
 
+  // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Handle print action
+  const handlePrint = async (billId: string) => {
+    setActiveAction({ rowId: billId, action: 'print' });
+    
+    try {
+      const response = await printBill(billId);
+      if (response.success) {
+        console.log('Bill printed successfully:', response.data);
+        // TODO: Show success notification
+      }
+    } catch (err) {
+      console.error('Error printing bill:', err);
+      // TODO: Show error notification
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  // Handle delete action
+  const handleDelete = async (billId: string) => {
+    setActiveAction({ rowId: billId, action: 'delete' });
+    
+    try {
+      const response = await deleteBill(billId);
+      if (response.success) {
+        console.log('Bill deleted successfully');
+        // Refresh bills list
+        fetchBills();
+        // TODO: Show success notification
+      }
+    } catch (err) {
+      console.error('Error deleting bill:', err);
+      // TODO: Show error notification
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  // Handle search input change with debounce
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   return (
@@ -87,7 +157,7 @@ export default function Bills() {
             <Form.Control
               placeholder="Search"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               className="border-start-0"
             />
           </InputGroup>
@@ -105,7 +175,7 @@ export default function Bills() {
         <div className="bills-card-header d-flex align-items-center justify-content-between mb-4">
           <div className="d-flex align-items-center gap-2">
             <h5 className="bills-title mb-0">Bills</h5>
-            <Badge className="bills-count">{billsData.length}</Badge>
+            <Badge className="bills-count">{totalItems}</Badge>
           </div>
           <Button variant="link" className="p-0 menu-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -116,43 +186,70 @@ export default function Bills() {
           </Button>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-4">
+            <Spinner animation="border" variant="success" />
+            <p className="mt-2 text-muted">Loading bills...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="alert alert-danger mx-3" role="alert">
+            {error}
+          </div>
+        )}
+
         {/* Table */}
-        <Table columns={columns}>
-          {paginatedBills.map((bill) => (
-            <tr key={bill.id}>
-              <td>
-                <div className="customer-cell-simple">
-                  <div className="customer-name">{bill.customerName}</div>
-                  <div className="customer-meta">{bill.itemCount} Items • {bill.tableInfo}</div>
-                </div>
-              </td>
-              <td className='usualtd'>{bill.tableNumber}</td>
-              <td className='usualtd'>{bill.orderNumber}</td>
-              <td>{getStatusBadge(bill.status)}</td>
-              <td className="text-center">
-                <button 
-                  className={`action-btn print-btn ${activeAction?.rowId === bill.id && activeAction?.action === 'print' ? 'active' : ''}`}
-                  onClick={() => setActiveAction({ rowId: bill.id, action: 'print' })}
-                >
-                  <img src={PrintIcon} alt="Print" />
-                </button>
-                <button 
-                  className={`action-btn delete-btn ${activeAction?.rowId === bill.id && activeAction?.action === 'delete' ? 'active' : ''}`}
-                  onClick={() => setActiveAction({ rowId: bill.id, action: 'delete' })}
-                >
-                  <img src={DeleteIcon} alt="Delete" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </Table>
+        {!isLoading && !error && (
+          <Table columns={columns}>
+            {bills.length > 0 ? (
+              bills.map((bill) => (
+                <tr key={bill._id}>
+                  <td>
+                    <div className="customer-cell-simple">
+                      <div className="customer-name">{bill.customerName}</div>
+                      <div className="customer-meta">{bill.itemCount} Items • {bill.tableInfo}</div>
+                    </div>
+                  </td>
+                  <td className='usualtd'>{bill.tableNumber}</td>
+                  <td className='usualtd'>{bill.orderNumber}</td>
+                  <td>{getStatusBadge(bill.status)}</td>
+                  <td className="text-center">
+                    <button 
+                      className={`action-btn print-btn ${activeAction?.rowId === bill._id && activeAction?.action === 'print' ? 'active' : ''}`}
+                      onClick={() => handlePrint(bill._id)}
+                      disabled={activeAction !== null}
+                    >
+                      <img src={PrintIcon} alt="Print" />
+                    </button>
+                    <button 
+                      className={`action-btn delete-btn ${activeAction?.rowId === bill._id && activeAction?.action === 'delete' ? 'active' : ''}`}
+                      onClick={() => handleDelete(bill._id)}
+                      disabled={activeAction !== null}
+                    >
+                      <img src={DeleteIcon} alt="Delete" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="text-center py-4 text-muted">
+                  No bills found
+                </td>
+              </tr>
+            )}
+          </Table>
+        )}
 
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={handlePageChange}
-          totalItems={filteredBills.length}
+          totalItems={totalItems}
           itemsPerPage={itemsPerPage}
         />
       </div>

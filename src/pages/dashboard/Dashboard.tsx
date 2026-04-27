@@ -1,6 +1,27 @@
+import { useState, useEffect } from 'react';
 import { BarChart3, Settings, Users, FileText, CreditCard, MoreHorizontal, LogOut, TrendingUp } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
+
+import './Dashboard.css';
+import Profile from "../../assets/profile-image.png";
+import SearchIcon from "../../assets/search-icon.svg";
+import CommandIcon from "../../assets/command-icon.svg";
+import SettingsIcon from "../../assets/settings-icon.svg";
+import DataIcon1 from "../../assets/dashboard-icon1.svg";
+import DataIcon2 from "../../assets/dashboard-icon2.svg";
+import DataIcon3 from "../../assets/dashboard-icon3.svg";
+import DataIcon4 from "../../assets/dashboard-icon4.svg";
+import Arrow from "../../assets/green-arrow.svg";
+import Tomato from "../../assets/tomato.png";
+import Dish from "../../assets/dish.png";
+
+// Loading Spinner Component
+const LoadingSpinner = () => (
+  <div className="loading-overlay">
+    <div className="spinner"></div>
+  </div>
+);
 
 // Custom Tooltip Component
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -19,60 +40,200 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   }
   return null;
 };
-import './Dashboard.css';
-import Profile from "../../assets/profile-image.png";
-import SearchIcon from "../../assets/search-icon.svg";
-import CommandIcon from "../../assets/command-icon.svg";
-import SettingsIcon from "../../assets/settings-icon.svg";
-import DataIcon1 from "../../assets/dashboard-icon1.svg";
-import DataIcon2 from "../../assets/dashboard-icon2.svg";
-import DataIcon3 from "../../assets/dashboard-icon3.svg";
-import DataIcon4 from "../../assets/dashboard-icon4.svg";
-import Arrow from "../../assets/green-arrow.svg";
-import Tomato from "../../assets/tomato.png";
-import Dish from "../../assets/dish.png";
 
-// Sample data for charts
-const salesData = [
-  { name: 'Jan', value: 400 },
-  { name: 'Feb', value: 300 },
-  { name: 'Mar', value: 600 },
-  { name: 'Apr', value: 800 },
-  { name: 'May', value: 500 },
-  { name: 'Jun', value: 450 },
-];
+// TypeScript Interfaces
+interface Stat {
+  title: string;
+  value: string;
+  change: string;
+  trend: 'up' | 'down';
+  icon: string;
+  color: string;
+}
 
-const incomeData = [
-  { name: 'Main Course', value: 400, color: '#153B9C' },
-  { name: 'Beverage', value: 300, color: '#2261FF' },
-  { name: 'Others', value: 200, color: '#A4BEFF' },
-];
+interface SalesData {
+  name: string;
+  value: number;
+}
 
-const transactions = [
-  { id: 1, product: 'Tomato', date: 'Wed, 04 Jun 2023', price: 30.00, image: Tomato },
-  { id: 2, product: 'Egg', date: 'Wed, 04 Jun 2023', price: 30.00, image: Tomato },
-  { id: 3, product: 'Tomato', date: 'Wed, 04 Jun 2023', price: 30.00, image: Tomato },
-];
+interface IncomeData {
+  name: string;
+  value: number;
+  color: string;
+}
 
-const trendingMenu = [
-  { id: 1, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
-  { id: 2, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
-  { id: 3, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
-  { id: 4, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
-  { id: 5, name: 'Kopag Benedict', orders: 150, percent: 27.4, image: Dish },
-];
+interface Transaction {
+  id: number;
+  product: string;
+  date: string;
+  price: number;
+  image: string;
+}
 
-const profileMenuItems = [
-  { path: '/dashboard', icon: BarChart3, label: 'Analytics' },
-  { path: '/account', icon: Settings, label: 'Account Setting' },
-  { path: '/customers', icon: Users, label: 'Customer List' },
-  { path: '/reports', icon: FileText, label: 'Report' },
-  { path: '/transactions', icon: CreditCard, label: 'Transaction' },
-];
+interface TrendingItem {
+  id: number;
+  name: string;
+  orders: number;
+  percent: number;
+  image: string;
+}
+
+interface User {
+  username?: string;
+}
 
 export default function Dashboard() {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const navigate = useNavigate();
+  const user: User = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // Default static stats structure with dynamic values set to 0
+  const defaultStats: Stat[] = [
+    {
+      title: 'Total sale',
+      value: '$0',
+      change: '0%',
+      trend: 'up',
+      icon: DataIcon1,
+      color: '#22c55e'
+    },
+    {
+      title: 'Total order',
+      value: '0',
+      change: '0%',
+      trend: 'up',
+      icon: DataIcon2,
+      color: '#f59e0b'
+    },
+    {
+      title: 'Total revenue',
+      value: '$0',
+      change: '0%',
+      trend: 'up',
+      icon: DataIcon3,
+      color: '#3b82f6'
+    },
+    {
+      title: 'Cancelled order',
+      value: '0',
+      change: '0%',
+      trend: 'down',
+      icon: DataIcon4,
+      color: '#ef4444'
+    },
+  ];
+
+  // States for dynamic data
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<Stat[]>(defaultStats);
+  const [salesData, setSalesData] = useState<SalesData[]>([]);
+  const [incomeData, setIncomeData] = useState<IncomeData[]>([]);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [trendingMenu, setTrendingMenu] = useState<TrendingItem[]>([]);
+
+  // Real API call to backend
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = 'http://localhost:6969/api';
+
+      // Fetch all dashboard data from backend
+      const [statsRes, salesRes, incomeRes, transactionsRes, trendingRes] = await Promise.all([
+        fetch(`${API_URL}/dashboard/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/dashboard/sales-chart`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/dashboard/income-chart`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/dashboard/transactions`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/dashboard/trending`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      const statsData = await statsRes.json();
+      const salesData = await salesRes.json();
+      const incomeData = await incomeRes.json();
+      const transactionsData = await transactionsRes.json();
+      const trendingData = await trendingRes.json();
+
+      // Update state with dynamic values from backend
+      // Static parts (title, icon, color, subtitle) remain hardcoded
+      if (statsData.success) {
+        const apiStats = statsData.data;
+        setStats([
+          {
+            title: 'Total sale',
+            value: apiStats.totalSale.value,
+            change: apiStats.totalSale.change,
+            trend: apiStats.totalSale.trend,
+            icon: DataIcon1,
+            color: '#22c55e'
+          },
+          {
+            title: 'Total order',
+            value: apiStats.totalOrder.value,
+            change: apiStats.totalOrder.change,
+            trend: apiStats.totalOrder.trend,
+            icon: DataIcon2,
+            color: '#f59e0b'
+          },
+          {
+            title: 'Total revenue',
+            value: apiStats.totalRevenue.value,
+            change: apiStats.totalRevenue.change,
+            trend: apiStats.totalRevenue.trend,
+            icon: DataIcon3,
+            color: '#3b82f6'
+          },
+          {
+            title: 'Cancelled order',
+            value: apiStats.cancelledOrder.value,
+            change: apiStats.cancelledOrder.change,
+            trend: apiStats.cancelledOrder.trend,
+            icon: DataIcon4,
+            color: '#ef4444'
+          },
+        ]);
+      }
+
+      if (salesData.success) {
+        setSalesData(salesData.data);
+      }
+
+      if (incomeData.success) {
+        setIncomeData(incomeData.data);
+        // Calculate total income dynamically
+        const total = incomeData.data.reduce((sum: number, item: IncomeData) => sum + item.value, 0);
+        setTotalIncome(total);
+      }
+
+      if (transactionsData.success) {
+        setTransactions(transactionsData.data);
+      }
+
+      if (trendingData.success) {
+        setTrendingMenu(trendingData.data);
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -80,48 +241,23 @@ export default function Dashboard() {
     navigate('/login');
   };
 
-  const stats = [
-    {
-      title: 'Total sale',
-      value: '$24,064',
-      change: '27.4%',
-      trend: 'up',
-      icon: DataIcon1,
-      color: '#22c55e'
-    },
-    {
-      title: 'Total order',
-      value: '$24,064',
-      change: '27.4%',
-      trend: 'up',
-      icon: DataIcon2,
-      color: '#f59e0b'
-    },
-    {
-      title: 'Total revenue',
-      value: '$24,064',
-      change: '27.4%',
-      trend: 'up',
-      icon: DataIcon3,
-      color: '#3b82f6'
-    },
-    {
-      title: 'Cancelled order',
-      value: '$24,064',
-      change: '27.4%',
-      trend: 'down',
-      icon: DataIcon4,
-      color: '#ef4444'
-    },
+  const profileMenuItems = [
+    { path: '/dashboard', icon: BarChart3, label: 'Analytics' },
+    { path: '/account', icon: Settings, label: 'Account Setting' },
+    { path: '/customers', icon: Users, label: 'Customer List' },
+    { path: '/reports', icon: FileText, label: 'Report' },
+    { path: '/transactions', icon: CreditCard, label: 'Transaction' },
   ];
 
   return (
     <div className="dashboard-container">
+      {isLoading && <LoadingSpinner />}
+      
       <div className="dashboard-main">
         {/* Welcome Section */}
         <div className="welcome-section">
           <div className="welcome-left">
-            <h1>Hello, {user.username || 'Rijal'} 👋</h1>
+            <h1>Hello, {user?.username || 'Rijal'} 👋</h1>
             <p>Here some reports on your dashboard</p>
           </div>
           <div className="welcome-right">
@@ -148,19 +284,18 @@ export default function Dashboard() {
                   <img src={stat.icon} className='data-icon'/>
                 </div>
                 <div>
-                <div className="stat-title">{stat.title}</div>
-                <div className="stat-footer">
-                <span className="stat-period">From last week</span>
-                <span className={`stat-change ${stat.trend === 'up' ? 'positive' : 'negative'}`}>
-                  {stat.change}
-                </span>
+                  <div className="stat-title">{stat.title}</div>
+                  <div className="stat-footer">
+                    <span className="stat-period">From last week</span>
+                    <span className={`stat-change ${stat.trend === 'up' ? 'positive' : 'negative'}`}>
+                      {stat.change}
+                    </span>
+                  </div>
+                </div>
               </div>
-              </div>
-              </div>
-
               <div className='value-Row'>
-              <div className="stat-value">{stat.value}</div>
-              <img src={Arrow} />
+                <div className="stat-value">{stat.value}</div>
+                <img src={Arrow} />
               </div>
             </div>
           ))}
@@ -257,7 +392,7 @@ export default function Dashboard() {
                 </ResponsiveContainer>
                 <div className="pie-center">
                   <span>Total</span>
-                  <strong>$15,490</strong>
+                  <strong>${totalIncome.toLocaleString()}</strong>
                 </div>
               </div>
             </div>
@@ -283,7 +418,7 @@ export default function Dashboard() {
                 <div key={transaction.id} className="transaction-row">
                   <div className="product-info">
                     <span className="product-image">
-                      <img src={transaction.image} />
+                      <img src={transaction.image} alt={transaction.product} />
                     </span>
                     <span className="product-name">{transaction.product}</span>
                   </div>
@@ -304,7 +439,7 @@ export default function Dashboard() {
                 <div key={item.id} className="trending-item">
                   <div className="trending-info">
                     <span className="trending-image">
-                      <img src={item.image} />
+                      <img src={item.image} alt={item.name} />
                     </span>
                     <div className="trending-details">
                       <span className="trending-name">{item.name}</span>
@@ -319,7 +454,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Profile Sidebar - Part of Dashboard Page */}
+      {/* Profile Sidebar */}
       <aside className="profile-sidebar">
         <div className="profile-card">
           <div className="profile-header">
@@ -335,7 +470,7 @@ export default function Dashboard() {
               alt="Profile"
               className="profile-avatar"
             />
-            <h3 className="profile-name">{user.username || 'User'}</h3>
+            <h3 className="profile-name">{user?.username || 'User'}</h3>
             <p className="profile-role">Administrator</p>
           </div>
 

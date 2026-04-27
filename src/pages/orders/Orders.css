@@ -208,6 +208,7 @@
 
 .pay-bills-btn {
   background-color: #00B940;
+  border: 1px solid transparent;
   color: white;
   font-weight: 500;
   padding: 10px 20px;
