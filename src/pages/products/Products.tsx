@@ -1,29 +1,21 @@
-import { useState, useRef } from 'react';
-import { Container, Row, Col, InputGroup, Form, Button } from 'react-bootstrap';
+import { useState, useRef, useEffect } from 'react';
+import { Container, Row, Col, InputGroup, Form, Button, Spinner, Alert } from 'react-bootstrap';
 import { Table } from '../../components';
 import { Pagination } from '../../components';
+import { getProducts, createProduct } from '../../api/products';
 import './Products.css';
 import SearchIcon from "../../assets/search-icon.svg";
 import PlusIcon from "../../assets/plus-icon.svg";
 
 interface Product {
-  id: string;
+  _id: string;
   name: string;
   code: string;
   category: string;
   stock: number;
-  price: string;
+  price: number;
+  image?: string;
 }
-
-const productsData: Product[] = [
-  { id: '1', name: 'Crispy Dory Sambal Matah', code: '#12345', category: 'Food', stock: 120, price: '$123.00' },
-  { id: '2', name: 'Kopag Benedict', code: '#12345', category: 'Food', stock: 120, price: '$123.00' },
-  { id: '3', name: 'Dory En Oats', code: '#12345', category: 'Food', stock: 120, price: '$123.00' },
-  { id: '4', name: 'Lemon Butter Dory', code: '#12345', category: 'Food', stock: 120, price: '$123.00' },
-  { id: '5', name: 'Spicy Tuna Nachos', code: '#12345', category: 'Food', stock: 120, price: '$123.00' },
-  { id: '6', name: 'Alfredo', code: '#12345', category: 'Food', stock: 120, price: '$123.00' },
-  { id: '7', name: 'Blackpapper Chicken', code: '#12345', category: 'Food', stock: 120, price: '$123.00' },
-];
 
 const columns = [
   { key: 'name', label: 'Product name', className: 'name-col' },
@@ -35,39 +27,96 @@ const columns = [
 
 const categoryTabs = [
   { key: 'all', label: 'All' },
-  { key: 'main-course', label: 'Main course' },
-  { key: 'appetizer', label: 'Appetizer' },
-  { key: 'dessert', label: 'Dessert' },
-  { key: 'beverage', label: 'Beverage' },
+  { key: 'Main course', label: 'Main course' },
+  { key: 'Appetizer', label: 'Appetizer' },
+  { key: 'Dessert', label: 'Dessert' },
+  { key: 'Beverage', label: 'Beverage' },
 ];
 
+// Loading Spinner Component
+const LoadingSpinner = () => (
+  <div className="text-center py-5">
+    <Spinner animation="border" variant="success" />
+  </div>
+);
+
 export default function Products() {
+  // Product list states
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  
+  // Add product form states
   const [productName, setProductName] = useState('');
   const [productCode, setProductCode] = useState('');
   const [stock, setStock] = useState('0');
   const [category, setCategory] = useState('');
-  const [unitPrice, setUnitPrice] = useState('0');
+  const [unitPrice, setUnitPrice] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const itemsPerPage = 7;
 
-  // Filter products
-  const filteredProducts = productsData.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch products from API
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const categoryParam = activeTab === 'all' ? undefined : activeTab;
+      const response = await getProducts({
+        category: categoryParam,
+        search: searchQuery,
+        page: currentPage,
+        limit: itemsPerPage
+      });
 
-  const totalPages = 40;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+      if (response.success) {
+        setProducts(response.data);
+        setTotalPages(response.totalPages);
+        setTotalItems(response.total);
+      } else {
+        setError('Failed to fetch products');
+      }
+    } catch (err) {
+      setError('Error loading products. Please try again.');
+      console.error('Error fetching products:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch data on mount and when dependencies change
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage, activeTab]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+      fetchProducts();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleTabChange = (tabKey: string) => {
+    setActiveTab(tabKey);
+    setCurrentPage(1);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,12 +161,14 @@ export default function Products() {
 
   const handleReset = () => {
     setProductName('');
-    setProductCode('####');
+    setProductCode('');
     setStock('0');
     setCategory('');
-    setUnitPrice('0');
+    setUnitPrice('');
     setSelectedImage(null);
     setImagePreview(null);
+    setSaveError(null);
+    setSaveSuccess(false);
   };
 
   const handleRemoveImage = (e: React.MouseEvent) => {
@@ -126,13 +177,51 @@ export default function Products() {
     setImagePreview(null);
   };
 
-  const handleSave = () => {
-    if (!selectedImage) return;
-    console.log('Saving product with image:', selectedImage);
-    // Add your save logic here
+  const handleSave = async () => {
+    if (!productName || !productCode || !unitPrice) {
+      setSaveError('Please fill in all required fields');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      const formData = new FormData();
+      formData.append('name', productName);
+      formData.append('code', productCode);
+      formData.append('category', category || 'Food');
+      formData.append('stock', stock);
+      formData.append('price', unitPrice);
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+
+      const response = await createProduct(formData);
+
+      if (response.success) {
+        setSaveSuccess(true);
+        handleReset();
+        fetchProducts(); // Refresh the product list
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        setSaveError(response.message || 'Failed to create product');
+      }
+    } catch (err: any) {
+      setSaveError(err.message || 'Error saving product. Please try again.');
+      console.error('Error saving product:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const isSaveEnabled = selectedImage !== null;
+  const isSaveEnabled = productName && productCode && unitPrice && !isSaving;
+
+  // Format price with dollar sign
+  const formatPrice = (price: number) => {
+    return `$${price.toFixed(2)}`;
+  };
 
   return (
     <div className="products-page-wrapper">
@@ -143,7 +232,7 @@ export default function Products() {
             <h2 className="page-title mb-0">Products Management</h2>
           </Col>
           <Col xs={12} md={6} className="d-flex flex-column flex-sm-row justify-content-md-end gap-3 mt-3 mt-md-0">
-            <InputGroup className="search-input-group" style={{ }}>
+            <InputGroup className="search-input-group" style={{ maxWidth: '300px' }}>
               <InputGroup.Text className="bg-white border-end-0">
                 <img src={SearchIcon} alt="Search" width={18} height={18} />
               </InputGroup.Text>
@@ -154,7 +243,7 @@ export default function Products() {
                 className="border-start-0"
               />
             </InputGroup>
-            <Button className="add-new-menu-btn">
+            <Button className="add-new-menu-btn" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <img src={PlusIcon} alt="Plus" width={16} height={16} />
               Add new menu
             </Button>
@@ -168,7 +257,7 @@ export default function Products() {
               <button
                 key={tab.key}
                 className={`tab-btn ${activeTab === tab.key ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => handleTabChange(tab.key)}
               >
                 {tab.label}
               </button>
@@ -176,13 +265,20 @@ export default function Products() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <Alert variant="danger" className="mb-4">
+            {error}
+          </Alert>
+        )}
+
         {/* Products Card */}
         <div className="products-card">
           {/* Card Header */}
           <div className="products-card-header d-flex align-items-center justify-content-between mb-4">
             <div className="d-flex align-items-center gap-2">
               <h5 className="products-title mb-0">Products</h5>
-              <span className="products-count">100</span>
+              <span className="products-count">{totalItems}</span>
             </div>
             <button className="menu-btn">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -194,32 +290,60 @@ export default function Products() {
           </div>
 
           {/* Table */}
-          <Table columns={columns}>
-            {paginatedProducts.map((product) => (
-              <tr key={product.id}>
-                <td className="product-name-cell">{product.name}</td>
-                <td>{product.code}</td>
-                <td>{product.category}</td>
-                <td className="stock-cell">{product.stock}</td>
-                <td>{product.price}</td>
-              </tr>
-            ))}
-          </Table>
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <>
+              <Table columns={columns}>
+                {products.length > 0 ? (
+                  products.map((product) => (
+                    <tr key={product._id}>
+                      <td className="product-name-cell">{product.name}</td>
+                      <td>{product.code}</td>
+                      <td>{product.category}</td>
+                      <td className="stock-cell">{product.stock}</td>
+                      <td>{formatPrice(product.price)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="text-center py-5 text-muted">
+                      No products found
+                    </td>
+                  </tr>
+                )}
+              </Table>
 
-          {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            totalItems={filteredProducts.length}
-            itemsPerPage={itemsPerPage}
-          />
+              {/* Pagination */}
+              {products.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                />
+              )}
+            </>
+          )}
         </div>
       </Container>
 
       {/* Add Product Panel */}
       <div className="add-product-panel">
         <h5 className="add-product-title">Add product</h5>
+        
+        {/* Success/Error Messages */}
+        {saveSuccess && (
+          <Alert variant="success" className="mb-3">
+            Product created successfully!
+          </Alert>
+        )}
+        {saveError && (
+          <Alert variant="danger" className="mb-3">
+            {saveError}
+          </Alert>
+        )}
         
         {/* Image Upload */}
         <div className="image-upload-section mb-4">
@@ -278,15 +402,17 @@ export default function Products() {
                 onChange={(e) => setCategory(e.target.value)}
               >
                 <option value="">Select</option>
-                <option value="food">Food</option>
-                <option value="beverage">Beverage</option>
-                <option value="dessert">Dessert</option>
+                <option value="Food">Food</option>
+                <option value="Main course">Main course</option>
+                <option value="Appetizer">Appetizer</option>
+                <option value="Dessert">Dessert</option>
+                <option value="Beverage">Beverage</option>
               </Form.Select>
             </Form.Group>
           </Col>
           <Col xs={6}>
             <Form.Group>
-              <Form.Label className="form-label">Unit Price</Form.Label>
+              <Form.Label className="form-label">Unit Price *</Form.Label>
               <div className="unit-price-input">
                 <span className="currency">$</span>
                 <Form.Control
@@ -294,6 +420,9 @@ export default function Products() {
                   value={unitPrice}
                   onChange={(e) => setUnitPrice(e.target.value)}
                   className="price-input"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
                 />
               </div>
             </Form.Group>
@@ -302,7 +431,7 @@ export default function Products() {
 
         {/* Product Name */}
         <Form.Group className="mb-3">
-          <Form.Label className="form-label">Product name</Form.Label>
+          <Form.Label className="form-label">Product name *</Form.Label>
           <Form.Control
             type="text"
             placeholder="Input product name"
@@ -314,7 +443,7 @@ export default function Products() {
 
         {/* Code Product */}
         <Form.Group className="mb-3">
-          <Form.Label className="form-label">Code product</Form.Label>
+          <Form.Label className="form-label">Code product *</Form.Label>
           <Form.Control
             type="text"
             placeholder="####"
@@ -333,6 +462,7 @@ export default function Products() {
               value={stock}
               onChange={(e) => setStock(e.target.value)}
               className="stock-input"
+              min="0"
             />
             <button className="stock-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -344,7 +474,7 @@ export default function Products() {
 
         {/* Action Buttons */}
         <div className="action-buttons d-flex gap-3">
-          <Button className="reset-btn" onClick={handleReset}>
+          <Button className="reset-btn" onClick={handleReset} disabled={isSaving}>
             Reset
           </Button>
           <Button 
@@ -352,7 +482,14 @@ export default function Products() {
             onClick={handleSave}
             disabled={!isSaveEnabled}
           >
-            Save
+            {isSaving ? (
+              <>
+                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                Saving...
+              </>
+            ) : (
+              'Save'
+            )}
           </Button>
         </div>
       </div>

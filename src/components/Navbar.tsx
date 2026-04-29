@@ -1,4 +1,5 @@
 import './Navbar.css';
+import { useNavigate } from 'react-router-dom';
 import NotificationIcon from "../assets/notification-icon.svg";
 import Profile from "../assets/profile-image.png";
 
@@ -9,6 +10,12 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user }: NavbarProps) {
+  const navigate = useNavigate();
+
+  const handleProfileClick = () => {
+    navigate('/account-setting');
+  };
+
   return (
     <header className="dashboard-header">
       <div className="header-left">
@@ -16,7 +23,7 @@ export default function Navbar({ user }: NavbarProps) {
       </div>
       <div className="header-right">
         <img src={NotificationIcon} className='notification-icon' />
-        <div className="user-profile-header">
+        <div className="user-profile-header" onClick={handleProfileClick} style={{ cursor: 'pointer' }}>
           <img
             src={Profile}
             alt="Profile"
