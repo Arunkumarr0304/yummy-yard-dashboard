@@ -16,6 +16,7 @@ import { History } from './pages/history';
 import { Products } from './pages/products';
 import { Menu } from './pages/menu';
 import { AccountSetting } from './pages/account-setting';
+import { Reports } from './pages/reports';
 import './App.css';
 
 // Loading spinner component
@@ -63,6 +64,33 @@ const PublicLayout = () => (
     <AuthLayout />
   </AuthCheck>
 );
+
+const ErrorBoundary = () => {
+  return (
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      height: '100vh',
+      padding: '20px',
+      textAlign: 'center'
+    }}>
+      <h2>Oops! Something went wrong</h2>
+      <p>Please try refreshing the page or go back to the dashboard.</p>
+      <a href="/dashboard" style={{ 
+        padding: '10px 20px', 
+        background: '#22c55e', 
+        color: 'white', 
+        textDecoration: 'none',
+        borderRadius: '8px',
+        marginTop: '20px'
+      }}>
+        Go to Dashboard
+      </a>
+    </div>
+  );
+};
 
 const router = createBrowserRouter([
   {
@@ -132,6 +160,10 @@ const router = createBrowserRouter([
       {
         path: 'account-setting',
         element: <AccountSetting />,
+      },
+      {
+        path: 'reports',
+        element: <Reports />,
       },
     ],
   },

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Container, Row, Col, InputGroup, Form, Badge, Button, Spinner } from 'react-bootstrap';
+import { useState, useMemo } from 'react';
+import { Container, Row, Col, InputGroup, Form, Badge, Button, Modal } from 'react-bootstrap';
 import { Table } from '../../components';
 import { Pagination } from '../../components';
-import { getBills, deleteBill, printBill } from '../../api/bills';
 import './Bills.css';
 import SearchIcon from "../../assets/search-icon.svg";
 import ArrowIcon from "../../assets/right-arrow.svg";
@@ -20,15 +19,6 @@ interface Bill {
   tableInfo: string;
 }
 
-interface BillsResponse {
-  success: boolean;
-  data: Bill[];
-  count: number;
-  total: number;
-  totalPages: number;
-  currentPage: number;
-}
-
 interface ActiveAction {
   rowId: string;
   action: 'print' | 'delete';
@@ -40,6 +30,22 @@ const columns = [
   { key: 'orderNumber', label: 'Order number', className: 'order-col' },
   { key: 'status', label: 'Status order', className: 'status-col' },
   { key: 'action', label: 'Action', className: 'action-col text-center', align: 'center' as const },
+];
+
+// Static bills data
+const staticBills: Bill[] = [
+  { _id: '1', customerName: 'Courtney Henry', initials: 'CH', tableNumber: 'Table 2A', orderNumber: '#10021', status: 'completed', itemCount: 2, tableInfo: 'Dine in' },
+  { _id: '2', customerName: 'Darrell Steward', initials: 'DS', tableNumber: 'Table 2B', orderNumber: '#10022', status: 'pending', itemCount: 2, tableInfo: 'Dine in' },
+  { _id: '3', customerName: 'Albert Flores', initials: 'AF', tableNumber: 'Table 3A', orderNumber: '#10023', status: 'completed', itemCount: 1, tableInfo: 'Dine in' },
+  { _id: '4', customerName: 'Marvin McKinney', initials: 'MM', tableNumber: 'Table 3B', orderNumber: '#10024', status: 'cancelled', itemCount: 1, tableInfo: 'Take Away' },
+  { _id: '5', customerName: 'Jenny Wilson', initials: 'JW', tableNumber: 'Table 4A', orderNumber: '#10025', status: 'completed', itemCount: 1, tableInfo: 'Dine in' },
+  { _id: '6', customerName: 'Annette Black', initials: 'AB', tableNumber: 'Table 4B', orderNumber: '#10026', status: 'pending', itemCount: 3, tableInfo: 'Dine in' },
+  { _id: '7', customerName: 'Robert Fox', initials: 'RF', tableNumber: 'Table 5A', orderNumber: '#10027', status: 'completed', itemCount: 1, tableInfo: 'Take Away' },
+  { _id: '8', customerName: 'Devon Lane', initials: 'DL', tableNumber: 'Table 5B', orderNumber: '#10028', status: 'completed', itemCount: 1, tableInfo: 'Dine in' },
+  { _id: '9', customerName: 'Floyd Miles', initials: 'FM', tableNumber: 'Table 6A', orderNumber: '#10029', status: 'pending', itemCount: 2, tableInfo: 'Dine in' },
+  { _id: '10', customerName: 'Guy Hawkins', initials: 'GH', tableNumber: 'Table 6B', orderNumber: '#10030', status: 'completed', itemCount: 1, tableInfo: 'Take Away' },
+  { _id: '11', customerName: 'Arlene McCoy', initials: 'AM', tableNumber: 'Table 7A', orderNumber: '#10031', status: 'completed', itemCount: 1, tableInfo: 'Dine in' },
+  { _id: '12', customerName: 'Esther Howard', initials: 'EH', tableNumber: 'Table 7B', orderNumber: '#10032', status: 'pending', itemCount: 1, tableInfo: 'Dine in' },
 ];
 
 const getStatusBadge = (status: string) => {
@@ -55,88 +61,138 @@ export default function Bills() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null);
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [bills] = useState<Bill[]>(staticBills);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showFailedModal, setShowFailedModal] = useState(false);
+  const [billToDelete, setBillToDelete] = useState<string | null>(null);
+  const [billToPrint, setBillToPrint] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [progressInterval, setProgressInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+
   
   const itemsPerPage = 6;
 
-  // Fetch bills from API
-  const fetchBills = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response: BillsResponse = await getBills({
-        search: searchQuery,
-        page: currentPage,
-        limit: itemsPerPage
-      });
-      
-      if (response.success) {
-        setBills(response.data);
-        setTotalItems(response.total);
-        setTotalPages(response.totalPages);
-      }
-    } catch (err) {
-      setError('Failed to fetch bills. Please try again.');
-      console.error('Error fetching bills:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Filter bills based on search query
+  const filteredBills = useMemo(() => {
+    if (!searchQuery) return bills;
+    return bills.filter(bill => 
+      bill.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bill.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bill.tableNumber.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [bills, searchQuery]);
 
-  // Fetch bills on component mount and when dependencies change
-  useEffect(() => {
-    fetchBills();
-  }, [currentPage, searchQuery]);
+  // Calculate pagination
+  const totalItems = filteredBills.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedBills = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredBills.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredBills, currentPage]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  // Handle print action
-  const handlePrint = async (billId: string) => {
-    setActiveAction({ rowId: billId, action: 'print' });
+  // Handle print button click - opens modal
+  const handlePrintClick = (billId: string) => {
+    setBillToPrint(billId);
+    setShowPrintModal(true);
+  };
+
+  // Handle confirm print from modal
+  const handleConfirmPrint = () => {
+    setShowPrintModal(false);
+    setShowProcessingModal(true);
+    setProgress(0);
     
-    try {
-      const response = await printBill(billId);
-      if (response.success) {
-        console.log('Bill printed successfully:', response.data);
-        // TODO: Show success notification
-      }
-    } catch (err) {
-      console.error('Error printing bill:', err);
-      // TODO: Show error notification
-    } finally {
-      setActiveAction(null);
+    // Simulate progress
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setProgressInterval(null);
+          setTimeout(() => {
+            setShowProcessingModal(false);
+            setShowSuccessModal(true);
+          }, 500);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+    setProgressInterval(interval);
+  };
+
+  // Handle cancel processing - shows failed
+  const handleCancelProcessing = () => {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+    }
+    setShowProcessingModal(false);
+    setShowFailedModal(true);
+    setProgress(0);
+  };
+
+  // Handle success modal close
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    setBillToPrint(null);
+    setActiveAction(null);
+  };
+
+  // Handle failed modal replay
+  const handleFailedReplay = () => {
+    setShowFailedModal(false);
+    if (billToPrint) {
+      handleConfirmPrint();
     }
   };
 
-  // Handle delete action
-  const handleDelete = async (billId: string) => {
-    setActiveAction({ rowId: billId, action: 'delete' });
-    
-    try {
-      const response = await deleteBill(billId);
-      if (response.success) {
-        console.log('Bill deleted successfully');
-        // Refresh bills list
-        fetchBills();
-        // TODO: Show success notification
-      }
-    } catch (err) {
-      console.error('Error deleting bill:', err);
-      // TODO: Show error notification
-    } finally {
-      setActiveAction(null);
+  // Handle failed modal close
+  const handleFailedClose = () => {
+    setShowFailedModal(false);
+    setBillToPrint(null);
+    setActiveAction(null);
+  };
+
+  // Handle cancel print - close modal
+  const handleCancelPrint = () => {
+    setShowPrintModal(false);
+    setBillToPrint(null);
+  };
+
+  // Handle delete button click - opens modal
+  const handleDeleteClick = (billId: string) => {
+    setBillToDelete(billId);
+    setShowDeleteModal(true);
+  };
+
+  // Handle confirm delete from modal
+  const handleConfirmDelete = () => {
+    if (billToDelete) {
+      setActiveAction({ rowId: billToDelete, action: 'delete' });
+      console.log('Deleting bill:', billToDelete);
+      // Simulate delete action
+      setTimeout(() => {
+        setActiveAction(null);
+        setShowDeleteModal(false);
+        setBillToDelete(null);
+      }, 500);
     }
   };
 
-  // Handle search input change with debounce
+  // Handle cancel delete - close modal
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setBillToDelete(null);
+  };
+
+  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1); // Reset to first page when searching
@@ -186,26 +242,10 @@ export default function Bills() {
           </Button>
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-4">
-            <Spinner animation="border" variant="success" />
-            <p className="mt-2 text-muted">Loading bills...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="alert alert-danger mx-3" role="alert">
-            {error}
-          </div>
-        )}
-
         {/* Table */}
-        {!isLoading && !error && (
-          <Table columns={columns}>
-            {bills.length > 0 ? (
-              bills.map((bill) => (
+        <Table columns={columns}>
+          {paginatedBills.length > 0 ? (
+            paginatedBills.map((bill) => (
                 <tr key={bill._id}>
                   <td>
                     <div className="customer-cell-simple">
@@ -219,14 +259,14 @@ export default function Bills() {
                   <td className="text-center">
                     <button 
                       className={`action-btn print-btn ${activeAction?.rowId === bill._id && activeAction?.action === 'print' ? 'active' : ''}`}
-                      onClick={() => handlePrint(bill._id)}
+                      onClick={() => handlePrintClick(bill._id)}
                       disabled={activeAction !== null}
                     >
                       <img src={PrintIcon} alt="Print" />
                     </button>
                     <button 
                       className={`action-btn delete-btn ${activeAction?.rowId === bill._id && activeAction?.action === 'delete' ? 'active' : ''}`}
-                      onClick={() => handleDelete(bill._id)}
+                      onClick={() => handleDeleteClick(bill._id)}
                       disabled={activeAction !== null}
                     >
                       <img src={DeleteIcon} alt="Delete" />
@@ -241,8 +281,7 @@ export default function Bills() {
                 </td>
               </tr>
             )}
-          </Table>
-        )}
+        </Table>
 
         {/* Pagination */}
         <Pagination
@@ -253,6 +292,180 @@ export default function Bills() {
           itemsPerPage={itemsPerPage}
         />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        show={showDeleteModal}
+        onHide={handleCancelDelete}
+        centered
+        className="delete-confirmation-modal"
+        backdrop="static"
+      >
+        <Modal.Body>
+        <div className='headingRow'>
+          <div className="delete-icon-wrapper">
+            <img src={DeleteIcon} alt="Delete" className="delete-modal-icon" />
+          </div>
+          <div>
+          <h5 className="modal-title">Delete confirmation required.</h5>
+          </div>
+          </div>
+          <p className="modal-description">
+            Are you certain about deleting this item? Once deleted, it cannot be recovered. Confirm deletion, please
+          </p>
+          
+          
+          <div className="modal-buttons">
+            <Button
+              className="confirm-btn"
+              onClick={handleConfirmDelete}
+              disabled={activeAction !== null}
+            >
+              Confirm
+            </Button>
+            <Button
+              variant="outline-secondary"
+              className="cancel-btn"
+              onClick={handleCancelDelete}
+            >
+              Cancel
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Print Confirmation Modal */}
+      <Modal
+        show={showPrintModal}
+        onHide={handleCancelPrint}
+        centered
+        className="print-confirmation-modal"
+        backdrop="static"
+      >
+        <Modal.Body>
+          <div className='headingRow'>
+          <div className="print-icon-wrapper">
+            <img src={PrintIcon} alt="Print" className="print-modal-icon" />
+          </div>
+          <h5 className="modal-title">Print bills?</h5>
+          </div>
+          <p className="modal-description">
+            Would you like to print bills now? Please confirm to proceed with the printing process.
+          </p>
+          <div className="modal-buttons">
+            <Button
+              className="confirm-btn"
+              onClick={handleConfirmPrint}
+              disabled={activeAction !== null}
+            >
+              Confirm
+            </Button>
+            <Button
+              variant="outline-secondary"
+              className="cancel-btn"
+              onClick={handleCancelPrint}
+            >
+              Cancel
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Processing Modal */}
+      <Modal
+        show={showProcessingModal}
+        onHide={handleCancelProcessing}
+        centered
+        className="processing-modal"
+        backdrop="static"
+      >
+        <Modal.Body>
+          <div className='headingRow'>
+            <div className="print-icon-wrapper">
+              <img src={PrintIcon} alt="Print" className="print-modal-icon" />
+            </div>
+            <h5 className="modal-title">Prosess print bills</h5>
+          </div>
+          <p className="modal-description">
+            Bills are currently being processed for printing. Please wait for completion. Thank you for your patience.
+          </p>
+          <div className="progress-container">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+          <div className="modal-buttons">
+            <Button
+              variant="outline-secondary"
+              className="cancel-btn"
+              onClick={handleCancelProcessing}
+            >
+              Cancel
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        show={showSuccessModal}
+        onHide={handleSuccessClose}
+        centered
+        className="success-modal"
+        backdrop="static"
+      >
+        <Modal.Body>
+          <div className='headingRow'>
+            <div className="success-icon-wrapper">
+              <span role="img" aria-label="success">🎉</span>
+            </div>
+            <h5 className="modal-title">Printing successful!</h5>
+          </div>
+          <p className="modal-description">
+            Your document has been successfully printed. Thank you for using our printing services
+          </p>
+          <div className="modal-buttons">
+            <Button
+              className="confirm-btn"
+              onClick={handleSuccessClose}
+            >
+              Back to history
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Failed Modal */}
+      <Modal
+        show={showFailedModal}
+        onHide={handleFailedClose}
+        centered
+        className="failed-modal"
+        backdrop="static"
+      >
+        <Modal.Body>
+          <div className='headingRow'>
+            <div className="failed-icon-wrapper">
+              <span role="img" aria-label="failed">❌</span>
+            </div>
+            <h5 className="modal-title">Printing failed!</h5>
+          </div>
+          <p className="modal-description">
+            Your document has been successfully printed. Thank you for using our printing services
+          </p>
+          <div className="modal-buttons">
+            <Button
+              className="confirm-btn"
+              onClick={handleFailedReplay}
+            >
+              Replay
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 }
